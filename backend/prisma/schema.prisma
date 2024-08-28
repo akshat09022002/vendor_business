@@ -18,7 +18,16 @@ model User{
   ownerName String
   password String
   email String @unique
+  business Business[]
   phoneNo String @unique
+  
+}
+
+model Business{
+  id String @id @default(uuid())
+  name String
+  userId String
+  user User @relation(fields: [userId], references: [id])
   services String[]
   description String
 }

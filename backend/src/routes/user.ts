@@ -3,8 +3,8 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import session from 'express-session';
-import cookieParser from 'cookie-parser'
+import session from "express-session";
+import cookieParser from "cookie-parser";
 import { PrismaClient } from "@prisma/client";
 import { UserCredenType, UserCreden } from "./schema";
 import { sendOtpEmail } from "../middlewares/nodemailer";
@@ -14,7 +14,6 @@ const prisma = new PrismaClient();
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
-
 
 //    //    //   Session configuration
 // app.use(session({
@@ -32,12 +31,11 @@ app.use(cookieParser());
 
 // app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
 
-
 const router = express.Router();
 
 // OTP GENERATION
 function generateOTP() {
-  let otp = '';
+  let otp = "";
   for (let i = 0; i < 6; i++) {
     otp += Math.floor(Math.random() * 10); // Generates a random digit from 0 to 9
   }
@@ -73,39 +71,38 @@ router.post("/register", async (req, res) => {
       //5) Generate 2 OTP's one for phoneNo and other for email.
 
       const emailOtp = generateOTP();
-      const phoneOtp = generateOTP()
+      const phoneOtp = generateOTP();
 
       const otpPresent = await prisma.otp.findMany({
-        where:{
-            email:userDetails.email,
-        }
-      })
+        where: {
+          email: userDetails.email,
+        },
+      });
 
-      if(!otpPresent){
+      if (!otpPresent) {
         const createOtp = await prisma.otp.create({
-          data:{
-              email:userDetails.email,
-              phoneNo: userDetails.phoneNo,
-              emailOtp:emailOtp,
-              phoneOtp: phoneOtp,
-              expiresAt:new Date(Date.now() + 10*60*1000)
-          }
-        })
-      }
-      else  {
-        const updateOtp = await prisma.otp.update({
-          where:{
-              email:userDetails.email
+          data: {
+            email: userDetails.email,
+            phoneNo: userDetails.phoneNo,
+            emailOtp: emailOtp,
+            phoneOtp: phoneOtp,
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000),
           },
-          data:{
-              emailOtp:emailOtp,
-              phoneOtp: phoneOtp,
-              expiresAt:new Date(Date.now() + 10*60*1000)
-          }
-        })
+        });
+      } else {
+        const updateOtp = await prisma.otp.update({
+          where: {
+            email: userDetails.email,
+          },
+          data: {
+            emailOtp: emailOtp,
+            phoneOtp: phoneOtp,
+            expiresAt: new Date(Date.now() + 10 * 60 * 1000),
+          },
+        });
       }
 
-      const message = await sendOtpEmail(userDetails.email, emailOtp)
+      const message = await sendOtpEmail(userDetails.email, emailOtp);
 
       // Set session
       // req.session.user = { userId };
@@ -116,7 +113,6 @@ router.post("/register", async (req, res) => {
         maxAge: 5 * 60 * 1000, // This cookie should be valid for 3 months,but changed to 5 min in development phase
         sameSite: "lax",
       });
-
     } else {
       return res.status(403).json({
         error: "User Already Exists",
@@ -129,33 +125,29 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.get('verify-otp',async(req,res)=>{
-  const {email, otp} = req.body()
+router.get("verify-otp", async (req, res) => {
+  const { email, otp } = req.body();
 
   try {
     const dbOtp = await prisma.otp.findFirst({
       where: {
-          email: email
+        email: email,
       },
-    })
+    });
 
-    if(otp === dbOtp?.emailOtp){
-        // add data to the db
+    if (otp === dbOtp?.emailOtp) {
+      // add data to the db
 
-        const deleteOtp = await prisma.otp.delete({
-          where:{
-              id: email
-          }
-        })
+      const deleteOtp = await prisma.otp.delete({
+        where: {
+          id: email,
+        },
+      });
     }
-  } catch (error) {
-    
-  }
-
+  } catch (error) {}
 });
 
 export const userRoute = router;
-
 
 // all every route check whether it session present
 // if (req.session.user) {
@@ -163,8 +155,6 @@ export const userRoute = router;
 // } else {
 //   res.status(401).send('Please login first');
 // }
-
-
 
 // Example route to destroy session (logout)
 // app.post('/logout', (req, res) => {
