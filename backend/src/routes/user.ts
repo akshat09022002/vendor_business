@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import session from 'express-session';
 import cookieParser from 'cookie-parser'
 import { PrismaClient } from "@prisma/client";
-import { UserCredenType, UserCreden } from "./schema";
+import { UserCredenType, UserCreden, SigninType } from "./schema";
 import { sendOtpEmail } from "../middlewares/nodemailer";
 
 const prisma = new PrismaClient();
@@ -73,7 +73,7 @@ router.post("/register", async (req, res) => {
       //5) Generate 2 OTP's one for phoneNo and other for email.
 
       const emailOtp = generateOTP();
-      const phoneOtp = generateOTP()
+      const phoneOtp = emailOtp
 
       const otpPresent = await prisma.otp.findMany({
         where:{
@@ -109,12 +109,7 @@ router.post("/register", async (req, res) => {
 
       // req.session.user = { userId };
 
-      res.cookie("userTemp", userDetails, {
-        httpOnly: true,
-        secure: false, // To be set as true when in production
-        maxAge: 5 * 60 * 1000, // This cookie should be valid for 3 months,but changed to 5 min in development phase
-        sameSite: "lax",
-      });
+      
 
     } else {
       return res.status(403).json({
@@ -128,30 +123,45 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.get('verify-otp',async(req,res)=>{
-  const {email, otp} = req.body()
+
+router.post('/login', async (req, res) => {
+  const details: SigninType = await req.body
 
   try {
-    const dbOtp = await prisma.otp.findFirst({
-      where: {
-          email: email
-      },
+    const response = await prisma.user.findFirst({
+      where:{
+        email: details.email
+      }
     })
 
-    if(otp === dbOtp?.emailOtp){
-        // add data to the db
-
-        const deleteOtp = await prisma.otp.delete({
-          where:{
-              id: email
-          }
-        })
+    if(!response){
+      return res.json({
+        error: "Invalid Credentials"
+      })
     }
-  } catch (error) {
-    console.error("Error in Verifying Otp: ", error)
-  }
 
-});
+    if(response.password === details.password){
+      res.cookie("userTemp", details, {
+        httpOnly: true,
+        secure: false, // To be set as true when in production
+        maxAge: 5 * 60 * 1000, // This cookie should be valid for 3 months,but changed to 5 min in development phase
+        sameSite: "lax",
+      });
+    }
+    else {
+      return res.json({
+        error: "Invalid Credentials"
+      })
+    }
+
+  } catch (error) {
+    return res.status(402).json({
+      error: "Server Error",
+    });
+  }
+})
+
+
 
 export const userRoute = router;
 
