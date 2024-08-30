@@ -149,7 +149,7 @@ router.get('verify-otp',async(req,res)=>{
         })
     }
   } catch (error) {
-    
+    console.error("Error in Verifying Otp: ", error)
   }
 
 });
@@ -157,7 +157,7 @@ router.get('verify-otp',async(req,res)=>{
 export const userRoute = router;
 
 
-// all every route check whether it session present
+//   //   // all every route check whether it session present
 // if (req.session.user) {
 //   res.send(`Welcome ${req.session.user.username}`);
 // } else {
