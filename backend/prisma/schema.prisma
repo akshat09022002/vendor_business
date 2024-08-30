@@ -40,3 +40,21 @@ model Otp{
   phoneOtp String
   expiresAt DateTime
 }
+
+model Customer {
+  id String @id @default(uuid())
+  firstname String
+  lastname String?
+  email String? @unique
+  phoneNo String @unique
+  dob String
+  anniversery String
+  // visits 
+}
+
+
+// DOUBT
+// visits array m kya kya hoga
+// cookie in login
+// password hash krke bd m daalna hai
+// status code 

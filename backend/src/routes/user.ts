@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import session from "express-session";
 import cookieParser from "cookie-parser";
 import { PrismaClient } from "@prisma/client";
-import { UserCredenType, UserCreden } from "./schema";
+import { UserCredenType, UserCreden, SigninType } from "./schema";
 import { sendOtpEmail } from "../middlewares/nodemailer";
 
 const prisma = new PrismaClient();
@@ -102,7 +102,7 @@ router.post("/register", async (req, res) => {
         });
       }
 
-      const message = await sendOtpEmail(userDetails.email, emailOtp);
+      const message = await sendOtpEmail(userDetails.email, emailOtp)
 
       // Set session
       // req.session.user = { userId };
@@ -125,31 +125,50 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.get("verify-otp", async (req, res) => {
-  const { email, otp } = req.body();
+
+router.post('/login', async (req, res) => {
+  const details: SigninType = await req.body
 
   try {
-    const dbOtp = await prisma.otp.findFirst({
-      where: {
-        email: email,
-      },
-    });
+    const response = await prisma.user.findFirst({
+      where:{
+        email: details.email
+      }
+    })
 
-    if (otp === dbOtp?.emailOtp) {
-      // add data to the db
+    if(!response){
+      return res.json({
+        error: "Invalid Credentials"
+      })
+    }
 
-      const deleteOtp = await prisma.otp.delete({
-        where: {
-          id: email,
-        },
+    if(response.password === details.password){
+      res.cookie("userTemp", details, {
+        httpOnly: true,
+        secure: false, // To be set as true when in production
+        maxAge: 5 * 60 * 1000, // This cookie should be valid for 3 months,but changed to 5 min in development phase
+        sameSite: "lax",
       });
     }
-  } catch (error) {}
-});
+    else {
+      return res.json({
+        error: "Invalid Credentials"
+      })
+    }
+
+  } catch (error) {
+    return res.status(402).json({
+      error: "Server Error",
+    });
+  }
+})
+
+
 
 export const userRoute = router;
 
-// all every route check whether it session present
+
+//   //   // all every route check whether it session present
 // if (req.session.user) {
 //   res.send(`Welcome ${req.session.user.username}`);
 // } else {
