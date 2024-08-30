@@ -107,7 +107,6 @@ router.post("/register", async (req, res) => {
 
       const message = await sendOtpEmail(userDetails.email, emailOtp)
 
-      // Set session
       // req.session.user = { userId };
 
       res.cookie("userTemp", userDetails, {
