@@ -18,7 +18,7 @@ model User{
   ownerName String
   password String
   email String @unique
-  business Business[]
+  business Business[] 
   phoneNo String @unique
   
 }
@@ -29,6 +29,7 @@ model Business{
   userId String
   user User @relation(fields: [userId], references: [id])
   services String[]
+  // templates {birthday-template,anniversary-template,automated-template}
   description String
 }
 
@@ -38,7 +39,7 @@ model Otp{
   phoneNo String @unique
   emailOtp String 
   phoneOtp String
-  expiresAt DateTime
+  expiresAt DateTime 
 }
 
 model Customer {
@@ -47,14 +48,13 @@ model Customer {
   lastname String?
   email String? @unique
   phoneNo String @unique
-  dob String
-  anniversery String
-  // visits 
+  dob DateTime
+  anniversery DateTime
+  // visits ---> {visitDate,feedback->{rating-(1-5),description},invoice_url}
 }
 
 
 // DOUBT
-// visits array m kya kya hoga
 // cookie in login
 // password hash krke bd m daalna hai
-// status code 
+// status code=> 403-> invalid credentials format, 400-> bad request,500-> internal server error, 

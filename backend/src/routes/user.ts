@@ -6,14 +6,24 @@ import jwt from "jsonwebtoken";
 import session from "express-session";
 import cookieParser from "cookie-parser";
 import { PrismaClient } from "@prisma/client";
-import { UserCredenType, UserCreden, SigninType } from "./schema";
+import {
+  UserType,
+  UserSchema,
+  UserSigninType,
+  UserSigninSchema,
+  BusinessType,
+  BusinessSchema,
+} from "./schema";
 import { sendOtpEmail } from "../middlewares/nodemailer";
+import { generateOTP } from "../routes/otp";
 
 const prisma = new PrismaClient();
 
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
+
+const JWT_SECRET = process.env.JWT_SECRET as string;
 
 //    //    //   Session configuration
 // app.use(session({
@@ -33,19 +43,10 @@ app.use(cookieParser());
 
 const router = express.Router();
 
-// OTP GENERATION
-function generateOTP() {
-  let otp = "";
-  for (let i = 0; i < 6; i++) {
-    otp += Math.floor(Math.random() * 10); // Generates a random digit from 0 to 9
-  }
-  return otp;
-}
-
 router.post("/register", async (req, res) => {
-  const userDetails: UserCredenType = await req.body;
+  const userDetails: UserType = await req.body;
 
-  const inputCheck = UserCreden.safeParse(userDetails);
+  const inputCheck = UserSchema.safeParse(userDetails);
   if (!inputCheck.success) {
     return res.status(400).json({
       error: "Invalid Request",
@@ -94,13 +95,16 @@ router.post("/register", async (req, res) => {
 
       const message = await sendOtpEmail(userDetails.email, emailOtp);
 
-      res.cookie("userTemp", userDetails, {
-        httpOnly: true,
-        secure: false, // To be set as true when in production
-        maxAge: 5 * 60 * 1000, // This cookie should be valid for 3 months,but changed to 5 min in development phase
-        sameSite: "lax",
+      const saltRounds = 10;
+      bcrypt.hash(userDetails.password, saltRounds, async (err, hash) => {
+        userDetails.password = hash;
+        res.cookie("userTemp", userDetails, {
+          httpOnly: true,
+          secure: false, // To be set as true when in production
+          maxAge: 10 * 60 * 1000, // This cookie should be valid for 3 months,but changed to 5 min in development phase
+          sameSite: "lax",
+        });
       });
-
     } else {
       return res.status(403).json({
         error: "User Already Exists",
@@ -114,39 +118,73 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
-  const details: SigninType = await req.body;
+  const userDetails: UserSigninType = await req.body;
+
+  const response = UserSigninSchema.safeParse(userDetails);
+
+  if (!response.success) {
+    res.status(403).json({
+      error: "Invalid Credentials",
+    });
+  }
 
   try {
-    const response = await prisma.user.findFirst({
+    const user = await prisma.user.findFirst({
       where: {
-        email: details.email,
+        email: userDetails.email,
       },
     });
 
-    if (!response) {
-      return res.json({
-        error: "Invalid Credentials",
+    if (!user) {
+      return res.status(401).json({
+        error: "Invalid Email/Password",
       });
     }
 
-    if (response.password === details.password) {
-      res.cookie("userTemp", details, {
+    bcrypt.compare(userDetails.password, user.password, (err, result) => {
+      if (err || result == false) {
+        res.status(403).json({
+          error: "Invalid Email/Password",
+        });
+      }
+
+      console.log("Jwt secret " + JWT_SECRET);
+
+      const token = jwt.sign({ userId: user.id }, JWT_SECRET);
+
+      res.cookie("token",token, {
         httpOnly: true,
         secure: false, // To be set as true when in production
         maxAge: 5 * 60 * 1000, // This cookie should be valid for 3 months,but changed to 5 min in development phase
         sameSite: "lax",
       });
-    } else {
-      return res.json({
-        error: "Invalid Credentials",
-      });
-    }
+    });
   } catch (error) {
-    return res.status(402).json({
+    return res.status(500).json({
       error: "Server Error",
     });
   }
 });
+
+// router.post("/add-business", async (req, res) => {
+//   const businessDetails: BusinessType = await req.body;
+//   const userDetails:{
+//     userId: string,
+//     email: string,
+//     phoneNo: string
+//   } = req.user;
+
+//   const response = BusinessSchema.safeParse(businessDetails);
+
+//   if (!response.success) {
+//     return res.status(403).json({
+//       error: "Invalid Input Format",
+//     });
+//   }
+
+//   const user= await prisma.business.create({});
+
+// });
 
 export const userRoute = router;
 
