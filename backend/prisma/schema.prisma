@@ -18,8 +18,18 @@ model User{
   ownerName String
   password String
   email String @unique
+  business Business[] 
   phoneNo String @unique
+  
+}
+
+model Business{
+  id String @id @default(uuid())
+  name String
+  userId String
+  user User @relation(fields: [userId], references: [id])
   services String[]
+  // templates {birthday-template,anniversary-template,automated-template}
   description String
 }
 
@@ -29,5 +39,22 @@ model Otp{
   phoneNo String @unique
   emailOtp String 
   phoneOtp String
-  expiresAt DateTime
+  expiresAt DateTime 
 }
+
+model Customer {
+  id String @id @default(uuid())
+  firstname String
+  lastname String?
+  email String? @unique
+  phoneNo String @unique
+  dob DateTime
+  anniversery DateTime
+  // visits ---> {visitDate,feedback->{rating-(1-5),description},invoice_url}
+}
+
+
+// DOUBT
+// cookie in login
+// password hash krke bd m daalna hai
+// status code=> 403-> invalid credentials format, 400-> bad request,500-> internal server error, 

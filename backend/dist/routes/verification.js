@@ -1,1 +1,2 @@
 "use strict";
+// use .gitignore for critical files that can't be shared
