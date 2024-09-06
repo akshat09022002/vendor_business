@@ -37,6 +37,7 @@ const CustomerSchema = zod.object({
   phoneNo: zod.string().length(10, "Phone number must be 10 digits"),
   dob: zod.date(),
   anniversery: zod.date(),
+  gender: zod.string()
 });
 
 // Types for each model

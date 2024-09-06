@@ -18,7 +18,7 @@ debug: true,       // Enables detailed logging of the SMTP communication between
 export const sendOtpEmail = async (to: string, otp: string) => {
   try {
     await transporter.sendMail({
-      from: "services@turl.co.in", 
+      from: process.env.SECRET_EMAIL, 
       to: to, 
       subject: 'Please verify you email.', 
       html: `<p>Your OTP is <strong>${otp}</strong></p>. This otp is only valid for 10 mins.`,
@@ -30,9 +30,17 @@ export const sendOtpEmail = async (to: string, otp: string) => {
   }
 };
 
-
-// DOUBT 
-// TUMKO YEH SAARE OPTION PATA KESE CHALE ??
-
-
-// SSLv3  // iske alawa bhi or they
+export const sendPromotionEmail = async (to: string, message: string): Promise<string> => {
+  try {
+    await transporter.sendMail({
+      from: process.env.SECRET_EMAIL, 
+      to: to, 
+      subject: 'Congratulation', 
+      html: `${message}`,
+    });
+    return 'Promotion sent successfully';
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw new Error('Failed to send promotion email');
+  }
+};

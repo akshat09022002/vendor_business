@@ -47,10 +47,28 @@ model Customer {
   firstname String
   lastname String?
   email String? @unique
+  gender genderType
   phoneNo String @unique
   dob DateTime
   anniversery DateTime
   // visits ---> {visitDate,feedback->{rating-(1-5),description},invoice_url}
+  visits  Visits[]
+}
+
+model Visits {
+  id String @id @default(uuid())
+  customer Customer @relation(fields: [customerId], references: [id])
+  customerId  String
+  visitDate DateTime
+  rating Int 
+  description String?
+  invoiceUrl  String
+}
+
+enum genderType {
+  Male
+  Female
+  Other
 }
 
 
@@ -58,3 +76,6 @@ model Customer {
 // cookie in login
 // password hash krke bd m daalna hai
 // status code=> 403-> invalid credentials format, 400-> bad request,500-> internal server error, 
+
+// expire hone k baad phirse naya otp create krke add krke bhejna h
+// promotion m jo email bhej rah ehai usme subject 

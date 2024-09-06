@@ -2,6 +2,7 @@ import express from "express";
 import cookieParser from "cookie-parser";
 import { PrismaClient } from "@prisma/client";
 import { CustomerType } from "./schema";
+import { sendPromotionEmail } from "../middlewares/nodemailer";
 
 const prisma = new PrismaClient();
 
@@ -27,7 +28,7 @@ router.post("/register-customer", async (req, res) => {
       });
     }
 
-    const createCustomer = await prisma.customer.create({
+    await prisma.customer.create({
       data: {
         firstname: details.firstname,
         lastname: details.lastname,
@@ -35,6 +36,7 @@ router.post("/register-customer", async (req, res) => {
         phoneNo: details.phoneNo,
         dob: details.dob,
         anniversery: details.anniversery,
+        gender: details.gender
       },
     });
 
@@ -44,6 +46,36 @@ router.post("/register-customer", async (req, res) => {
   } catch (error) {
     return res.status(402).json({
       error: "Server Error",
+    });
+  }
+});
+
+interface PromotionDetails {
+  customerId: string,
+  message: string
+}
+
+router.post('/promotion', async (req, res) => {
+  try {
+    const details: PromotionDetails[] = req.body;
+
+    if (!Array.isArray(details) || details.length === 0) {
+      return res.status(400).json({ error: 'Invalid or empty promotion details' });
+    }
+
+    const emailPromises = details.map((mail) => sendPromotionEmail(mail.customerId, mail.message));
+    
+    // Wait for all emails to be sent
+    await Promise.all(emailPromises);
+    
+    return res.status(200).json({ 
+      message: 'Promotions sent successfully'
+     });
+
+  } catch (error) {
+    console.error('Error processing promotion emails:', error);
+    return res.status(500).json({ 
+      error: 'Something went wrong while sending promotions'
     });
   }
 });

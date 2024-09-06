@@ -13,6 +13,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 const router = express.Router();
+const JWT_SECRET = process.env.JWT_SECRET as string;
 
 // OTP GENERATION
 export const generateOTP = () => {
@@ -43,12 +44,29 @@ router.get("/verify-otp", async (req, res) => {
 
     // check if otp expired
     // generate
+    if (dbOtp.expiresAt < new Date()) {
+      await prisma.otp.update({
+        where: {
+          id: dbOtp.id,
+        },
+        data: {
+          expiresAt: new Date(Date.now() + 10 * 60 * 1000), 
+        },
+      });
+
+      // Return response if OTP has expired
+      return res.status(400).json({
+        error: "Re-enter OTP",
+      });
+    }
+
+
 
     if (
       otpEntry.emailOtp === dbOtp.emailOtp &&
       otpEntry.phoneOtp === dbOtp.phoneOtp
     ) {
-      await prisma.user.create({
+      const response = await prisma.user.create({
         data: {
           ownerName: userDetails.ownerName,
           password: userDetails.password,
@@ -59,12 +77,16 @@ router.get("/verify-otp", async (req, res) => {
 
       await prisma.otp.delete({
         where: {
-          id: userDetails.email,
+          id: dbOtp.id, 
         },
       });
 
+      res.clearCookie('userTemp');
+
         // jwt daalenge -->Ujjwal(see from login page)
-      res.cookie("user", userDetails, {
+      const token = jwt.sign({ userId: response.id}, JWT_SECRET)
+
+      res.cookie("token", token, {
         httpOnly: true,
         secure: false, // To be set as true when in production
         maxAge: 5 * 60 * 1000, // This cookie should be valid for 3 months,but changed to 5 min in development phase
@@ -74,7 +96,12 @@ router.get("/verify-otp", async (req, res) => {
       return res.json({
         message: "Otp Verification Complete",
       });
+    } else {
+      return res.status(400).json({ 
+        error: "Invalid OTP" 
+      });
     }
+
   } catch (error) {
     return res.status(500).json({
       error: "Server Error"

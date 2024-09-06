@@ -62,7 +62,7 @@ router.post("/register", async (req, res) => {
 
     if (!userCheck) {
       const emailOtp = generateOTP();
-      const phoneOtp = generateOTP();
+      const phoneOtp = emailOtp;
 
       const otpPresent = await prisma.otp.findMany({
         where: {
